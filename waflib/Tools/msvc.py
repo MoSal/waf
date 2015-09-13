@@ -283,12 +283,12 @@ def gather_wince_supported_platforms():
 		path,device = os.path.split(path)
 		if not device:
 			path,device = os.path.split(path)
+		platforms = []
 		for arch,compiler in all_wince_platforms:
-			platforms = []
 			if os.path.isdir(os.path.join(path, device, 'Lib', arch)):
 				platforms.append((arch, compiler, os.path.join(path, device, 'Include', arch), os.path.join(path, device, 'Lib', arch)))
-			if platforms:
-				supported_wince_platforms.append((device, platforms))
+		if platforms:
+			supported_wince_platforms.append((device, platforms))
 	return supported_wince_platforms
 
 def gather_msvc_detected_versions():
@@ -383,7 +383,7 @@ class lazytup(object):
 	def evaluate(self):
 		if hasattr(self, 'value'):
 			return
-		self.value = self.fn()		
+		self.value = self.fn()
 
 @conf
 def gather_msvc_targets(conf, versions, version, vc_path):
@@ -467,9 +467,14 @@ def gather_msvc_versions(conf, versions):
 		if wince_supported_platforms and os.path.isfile(vsvars):
 			conf.gather_wince_targets(versions, version, vc_path, vsvars, wince_supported_platforms)
 
+	# WP80 works with 11.0Exp and 11.0, both of which resolve to the same vc_path.
+	# Stop after one is found.
+	for version,vc_path in vc_paths:
+		vs_path = os.path.dirname(vc_path)
 		vsvars = os.path.join(vs_path, 'VC', 'WPSDK', 'WP80', 'vcvarsphoneall.bat')
 		if os.path.isfile(vsvars):
 			conf.gather_winphone_targets(versions, '8.0', vc_path, vsvars)
+			break
 
 	for version,vc_path in vc_paths:
 		vs_path = os.path.dirname(vc_path)
@@ -601,19 +606,36 @@ def gather_intel_composer_versions(conf, versions):
 		versions.append(('intel ' + major, targets))
 
 @conf
-def get_msvc_versions(conf):
+def get_msvc_versions(conf, eval_and_save=True):
 	"""
 	:return: list of compilers installed
 	:rtype: list of string
 	"""
-	if not conf.env['MSVC_INSTALLED_VERSIONS']:
-		lst = []
-		conf.gather_icl_versions(lst)
-		conf.gather_intel_composer_versions(lst)
-		conf.gather_wsdk_versions(lst)
-		conf.gather_msvc_versions(lst)
+	if conf.env['MSVC_INSTALLED_VERSIONS']:
+		return conf.env['MSVC_INSTALLED_VERSIONS']
+	
+	# Gather all the compiler versions and targets. This phase can be lazy
+	# per lazy detection settings.
+	lst = []
+	conf.gather_icl_versions(lst)
+	conf.gather_intel_composer_versions(lst)
+	conf.gather_wsdk_versions(lst)
+	conf.gather_msvc_versions(lst)
+
+	# Override lazy detection by evaluating after the fact.
+	if eval_and_save:
+		def checked_target(t):
+			target,(arch,paths) = t
+			try:
+				paths.evaluate()
+			except conf.errors.ConfigurationError:
+				return None
+			else:
+				return t
+		lst = [(version,filter(checked_target, targets)) for version, targets in lst]
 		conf.env['MSVC_INSTALLED_VERSIONS'] = lst
-	return conf.env['MSVC_INSTALLED_VERSIONS']
+
+	return lst
 
 @conf
 def print_all_msvc_detected(conf):
@@ -627,7 +649,9 @@ def print_all_msvc_detected(conf):
 
 @conf
 def detect_msvc(conf, arch = False):
-	versions = get_msvc_versions(conf)
+	# Save installed versions only if lazy detection is disabled.
+	lazy_detect = getattr(Options.options, 'msvc_lazy_autodetect', False) or conf.env['MSVC_LAZY_AUTODETECT']
+	versions = get_msvc_versions(conf, not lazy_detect)
 	return setup_msvc(conf, versions, arch)
 
 @conf
