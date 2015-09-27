@@ -106,7 +106,6 @@ def setup_msvc(conf, versions, arch = False):
 	:return: the compiler, revision, path, include dirs, library paths, and (optionally) target architecture
 	:rtype: tuple of strings
 	"""
-	
 	platforms = getattr(Options.options, 'msvc_targets', '').split(',')
 	if platforms == ['']:
 		platforms=Utils.to_list(conf.env['MSVC_TARGETS']) or [i for i,j in all_msvc_platforms+all_icl_platforms+all_wince_platforms]
@@ -329,8 +328,8 @@ def get_compiler_env(conf, compiler, version, bat_target, bat, select=None):
 	"""
 	Gets the compiler environment variables as a tuple. Evaluation is eager by default.
 	If set to lazy with ``--msvc_lazy_autodetect`` or ``env.MSVC_LAZY_AUTODETECT``
-        the environment is evaluated when the tuple is destructured or iterated. This means
-        destructuring can throw :py:class:`conf.errors.ConfigurationError`.
+	the environment is evaluated when the tuple is destructured or iterated. This means
+	destructuring can throw :py:class:`conf.errors.ConfigurationError`.
 
 	:param conf: configuration context to use to eventually get the version environment
 	:param compiler: compiler name
@@ -351,27 +350,26 @@ def get_compiler_env(conf, compiler, version, bat_target, bat, select=None):
 class lazytup(object):
 	"""
 	A tuple that evaluates its elements from a function when iterated or destructured.
-	
+
 	:param fn: thunk to evaluate the tuple on demand
 	:param lazy: whether to delay evaluation or evaluate in the constructor
 	:param default: optional default for :py:func:`repr` if it should not evaluate
 	"""
-        def __init__(self, fn, lazy=True, default=None):
+	def __init__(self, fn, lazy=True, default=None):
 		self.fn = fn
 		self.default = default
-		
 		if not lazy:
 			self.evaluate()
-        def __len__(self):
+	def __len__(self):
 		self.evaluate()
-                return len(self.value)
-        def __iter__(self):
+		return len(self.value)
+	def __iter__(self):
 		self.evaluate()
-                for i, v in enumerate(self.value):
-                        yield v
-        def __getitem__(self, i):
+		for i, v in enumerate(self.value):
+			yield v
+	def __getitem__(self, i):
 		self.evaluate()
-                return self.value[i]
+		return self.value[i]
 	def __repr__(self):
 		if hasattr(self, 'value'):
 			return repr(self.value)
@@ -429,7 +427,6 @@ def gather_wince_targets(conf, versions, version, vc_path, vsvars, supported_pla
 					cetargets.append((platform, (platform, get_compiler_env(conf, 'msvc', version, 'x86', vsvars, combine_common))))
 				except conf.errors.ConfigurationError:
 					continue
-					
 		if cetargets:
 			versions.append((device + ' ' + version, cetargets))
 
@@ -597,9 +594,9 @@ def gather_intel_composer_versions(conf, versions):
 							if (r'if exist "%VS110COMNTOOLS%..\IDE\VSWinExpress.exe"' in Utils.readf(compilervars_arch) and
 								not os.path.exists(vs_express_path) and not os.path.exists(dev_env_path)):
 								Logs.warn(('The Intel compilervar_arch.bat only checks for one Visual Studio SKU '
-								           '(VSWinExpress.exe) but it does not seem to be installed at %r. '
-								           'The intel command line set up will fail to configure unless the file %r'
-								           'is patched. See: %s') % (vs_express_path, compilervars_arch, patch_url))
+								'(VSWinExpress.exe) but it does not seem to be installed at %r. '
+								'The intel command line set up will fail to configure unless the file %r'
+								'is patched. See: %s') % (vs_express_path, compilervars_arch, patch_url))
 			except WindowsError:
 				pass
 		major = version[0:2]
@@ -613,7 +610,7 @@ def get_msvc_versions(conf, eval_and_save=True):
 	"""
 	if conf.env['MSVC_INSTALLED_VERSIONS']:
 		return conf.env['MSVC_INSTALLED_VERSIONS']
-	
+
 	# Gather all the compiler versions and targets. This phase can be lazy
 	# per lazy detection settings.
 	lst = []
@@ -632,7 +629,7 @@ def get_msvc_versions(conf, eval_and_save=True):
 				return None
 			else:
 				return t
-		lst = [(version,filter(checked_target, targets)) for version, targets in lst]
+		lst = [(version, list(filter(checked_target, targets))) for version, targets in lst]
 		conf.env['MSVC_INSTALLED_VERSIONS'] = lst
 
 	return lst
