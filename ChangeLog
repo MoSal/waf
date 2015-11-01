@@ -1,3 +1,27 @@
+NEW IN WAF 1.8.17
+-----------------
+* Added customizations that enable building whole projects from the build folder instead of the variant folder
+* Added a project generator for Xcode 6 - #1648
+
+NEW IN WAF 1.8.16
+-----------------
+* Reverted the changes to conf.check(header_name=) as this causes regressions. Use conf.check(header_name=, link_header_test=False) - #1647
+* Disabled the loading of c_emscripten when building from the Waf tree
+* Fixed the documentation build when using Sphinx < 1.3
+* Propagate ldflags/LDFLAGS besides linkflags/LINKFLAGS
+* Python3 fixes in extras/file_to_object.py
+
+NEW IN WAF 1.8.15
+-----------------
+* Enabled multiple commands in run_str/rule
+* Fixed conf.check(header_name=) so that it does not link test by default
+* Added a workaround for non-standard python installations (Python bug 7352) - #1636
+* Enabled conf.check_cfg to use conf.env.env as os environment if provided
+* Enabled relative paths in --top and --out
+* Enabled gzip compression for Waf file creation with Jython
+* Added a workaround for building projects using IronPython
+* Added a workarounds for pkg-config usage within msys2 and for inconsistent Python 2 paths
+
 NEW IN WAF 1.8.14
 -----------------
 * Fixed the Visual Studio detection on Python 3 when --msvc_lazy_autodetect is not provided (regression)

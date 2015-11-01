@@ -10,7 +10,7 @@ To add a tool that does not exist in the folder compat15, pass an absolute path:
 """
 
 
-VERSION="1.8.14"
+VERSION="1.8.16"
 APPNAME='waf'
 REVISION=''
 
@@ -90,7 +90,10 @@ def options(opt):
 
 	opt.add_option('--sign', action='store_true', default=False, help='make a signed file', dest='signed')
 
-	opt.add_option('--zip-type', action='store', default='bz2',
+	default_zip = 'bz2'
+	if os.name == 'java':
+		default_zip = 'gz'
+	opt.add_option('--zip-type', action='store', default=default_zip,
 		help='specify the zip type [Allowed values: %s]' % ' '.join(zip_types), dest='zip')
 
 	opt.add_option('--make-batch', action='store_true', default=False,
@@ -252,7 +255,7 @@ def create_waf(self, *k, **kw):
 		dd = os.path.join('waflib', d)
 		for k in os.listdir(dd):
 			if k == '__init__.py':
-				files.append(os.path.join(dd, k))
+				files.append(os.path.normpath(os.path.join(dd, k)))
 				continue
 			if d == 'Tools' and Options.options.coretools != 'default':
 				if not k in coretools:
@@ -261,13 +264,17 @@ def create_waf(self, *k, **kw):
 				if not k in add3rdparty:
 					continue
 			if k.endswith('.py'):
-				files.append(os.path.join(dd, k))
+				files.append(os.path.normpath(os.path.join(dd, k)))
 
 	#open a file as tar.[extension] for writing
 	tar = tarfile.open('%s.tar.%s' % (mw, zipType), "w:%s" % zipType)
 	z = zipfile.ZipFile("zip/waflib.zip", "w", compression=zipfile.ZIP_DEFLATED)
 	for x in files:
-		tarinfo = tar.gettarinfo(x, x)
+		try:
+			tarinfo = tar.gettarinfo(x, x)
+		except NotImplementedError:
+			# jython 2.7.0 workaround
+			tarinfo = tarfile.TarInfo(x)
 		tarinfo.uid   = tarinfo.gid   = 0
 		tarinfo.uname = tarinfo.gname = 'root'
 		(code, size, cnt) = sfilter(x)
@@ -398,7 +405,6 @@ def make_copy(inf, outf):
 
 def configure(conf):
 	conf.load('python')
-	conf.check_python_version((2,4))
 
 def build(bld):
 	waf = bld.path.make_node('waf') # create the node right here

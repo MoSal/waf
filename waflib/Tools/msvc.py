@@ -235,7 +235,7 @@ def gather_wsdk_versions(conf, versions):
 			path,type = Utils.winreg.QueryValueEx(msvc_version,'InstallationFolder')
 		except WindowsError:
 			continue
-		if os.path.isfile(os.path.join(path, 'bin', 'SetEnv.cmd')):
+		if path and os.path.isfile(os.path.join(path, 'bin', 'SetEnv.cmd')):
 			targets = []
 			for target,arch in all_msvc_platforms:
 				try:
@@ -833,9 +833,6 @@ def find_msvc(conf):
 	v.MSVC_MANIFEST = (compiler == 'msvc' and version >= 8) or (compiler == 'wsdk' and version >= 6) or (compiler == 'intel' and version >= 11)
 
 	# compiler
-	cxx = None
-	if v['CXX']: cxx = v['CXX']
-	elif 'CXX' in conf.environ: cxx = conf.environ['CXX']
 	cxx = conf.find_program(compiler_name, var='CXX', path_list=path)
 
 	# before setting anything, check if the compiler is really msvc

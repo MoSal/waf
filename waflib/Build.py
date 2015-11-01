@@ -44,6 +44,10 @@ POST_LAZY = 1
 POST_BOTH = 2
 """Post mode: post the task generators at once, then re-check them for each group"""
 
+PROTOCOL = -1
+if sys.platform == 'cli':
+	PROTOCOL = 0
+
 class BuildContext(Context.Context):
 	'''executes the build'''
 
@@ -322,7 +326,7 @@ class BuildContext(Context.Context):
 		try:
 			waflib.Node.pickle_lock.acquire()
 			waflib.Node.Nod3 = self.node_class
-			x = cPickle.dumps(data, -1)
+			x = cPickle.dumps(data, PROTOCOL)
 		finally:
 			waflib.Node.pickle_lock.release()
 
@@ -1039,6 +1043,7 @@ class InstallContext(BuildContext):
 		:param postpone: execute the task immediately to perform the installation
 		:type postpone: bool
 		"""
+		assert(dest)
 		tsk = inst(env=env or self.env)
 		tsk.bld = self
 		tsk.path = cwd or self.path
@@ -1075,6 +1080,7 @@ class InstallContext(BuildContext):
 		:param postpone: execute the task immediately to perform the installation
 		:type postpone: bool
 		"""
+		assert(dest)
 		tsk = inst(env=env or self.env)
 		tsk.bld = self
 		tsk.path = cwd or self.path
@@ -1107,11 +1113,11 @@ class InstallContext(BuildContext):
 		:param relative_trick: make the symlink relative (default: ``False``)
 		:type relative_trick: bool
 		"""
-
 		if Utils.is_win32:
 			# symlinks *cannot* work on that platform
+			# TODO waf 1.9 - replace by install_as
 			return
-
+		assert(dest)
 		tsk = inst(env=env or self.env)
 		tsk.bld = self
 		tsk.dest = dest
