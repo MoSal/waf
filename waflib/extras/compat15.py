@@ -24,6 +24,9 @@ sys.modules['Node'] = Node
 sys.modules['Runner'] = Runner
 sys.modules['TaskGen'] = TaskGen
 sys.modules['Utils'] = Utils
+sys.modules['Constants'] = Context
+Context.SRCDIR = ''
+Context.BLDDIR = ''
 
 from waflib.Tools import c_preproc
 sys.modules['preproc'] = c_preproc
@@ -33,6 +36,8 @@ sys.modules['config_c'] = c_config
 
 ConfigSet.ConfigSet.copy = ConfigSet.ConfigSet.derive
 ConfigSet.ConfigSet.set_variant = Utils.nada
+
+Utils.pproc = Utils.subprocess
 
 Build.BuildContext.add_subdirs = Build.BuildContext.recurse
 Build.BuildContext.new_task_gen = Build.BuildContext.__call__
@@ -150,6 +155,16 @@ def get_curdir(self):
 	return self.path.abspath()
 Context.Context.curdir = property(get_curdir, Utils.nada)
 
+def get_srcdir(self):
+	return self.srcnode.abspath()
+Configure.ConfigurationContext.srcdir = property(get_srcdir, Utils.nada)
+
+def get_blddir(self):
+	return self.bldnode.abspath()
+Configure.ConfigurationContext.blddir = property(get_blddir, Utils.nada)
+
+Configure.ConfigurationContext.check_message_1 = Configure.ConfigurationContext.start_msg
+Configure.ConfigurationContext.check_message_2 = Configure.ConfigurationContext.end_msg
 
 rev = Context.load_module
 def load_module(path, encoding=None):
@@ -166,6 +181,8 @@ def load_module(path, encoding=None):
 		if Logs.verbose:
 			Logs.warn('compat: rename "blddir" to "out" (%r)' % path)
 		ret.out = ret.blddir
+	Utils.g_module = Context.g_module
+	Options.launch_dir = Context.launch_dir
 	return ret
 Context.load_module = load_module
 
@@ -367,4 +384,19 @@ def install_dir(self, path):
 		except OSError:
 			pass
 Build.BuildContext.install_dir = install_dir
+
+# before/after names
+repl = {'apply_core': 'process_source',
+	'apply_lib_vars': 'process_source',
+	'apply_obj_vars': 'propagate_uselib_vars',
+	'exec_rule': 'process_rule'
+}
+def after(*k):
+	k = [repl.get(key, key) for key in k]
+	return TaskGen.after_method(*k)
+
+def before(*k):
+	k = [repl.get(key, key) for key in k]
+	return TaskGen.before_method(*k)
+TaskGen.before = before
 

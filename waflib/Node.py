@@ -149,6 +149,69 @@ class Node(object):
 		"""
 		Utils.writef(self.abspath(), data, flags, encoding)
 
+	def read_json(self, convert=True, encoding='utf-8'):
+		"""
+		Read and parse the contents of this node as JSON::
+
+			def build(bld):
+				bld.path.find_node('abc.json').read_json()
+
+		Note that this by default automatically decodes unicode strings on Python2, unlike what the Python JSON module does.
+
+		:type  convert: boolean
+		:param convert: Prevents decoding of unicode strings on Python2
+		:type  encoding: string
+		:param encoding: The encoding of the file to read. This default to UTF8 as per the JSON standard
+		:rtype: object
+		:return: Parsed file contents
+		"""
+		import json # Python 2.6 and up
+		object_pairs_hook = None
+		if convert and sys.hexversion < 0x3000000:
+			try:
+				_type = unicode
+			except NameError:
+				_type = str
+
+			def convert(value):
+				if isinstance(value, list):
+					return [convert(element) for element in value]
+				elif isinstance(value, _type):
+					return str(value)
+				else:
+					return value
+
+			def object_pairs(pairs):
+				return dict((str(pair[0]), convert(pair[1])) for pair in pairs)
+
+			object_pairs_hook = object_pairs
+
+		return json.loads(self.read(encoding=encoding), object_pairs_hook=object_pairs_hook)
+
+	def write_json(self, data, pretty=True):
+		"""
+		Writes a python object as JSON to disk. Files are always written as UTF8 as per the JSON standard::
+
+			def build(bld):
+				bld.path.find_node('xyz.json').write_json(199)
+
+		:type  data: object
+		:param data: The data to write to disk
+		:type  pretty: boolean
+		:param pretty: Determines if the JSON will be nicely space separated
+		"""
+		import json # Python 2.6 and up
+		indent = 2
+		separators = (',', ': ')
+		sort_keys = pretty
+		newline = os.linesep
+		if not pretty:
+			indent = None
+			separators = (',', ':')
+			newline = ''
+		output = json.dumps(data, indent=indent, separators=separators, sort_keys=sort_keys) + newline
+		self.write(output, encoding='utf-8')
+
 	def chmod(self, val):
 		"""
 		Change file/dir permissions::

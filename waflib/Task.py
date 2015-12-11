@@ -206,6 +206,7 @@ class TaskBase(evil):
 		# remove the task signature immediately before it is executed
 		# in case of failure the task will be executed again
 		try:
+			# TODO waf 1.9 - this breaks encapsulation
 			del self.generator.bld.task_sigs[self.uid()]
 		except KeyError:
 			pass
@@ -1129,7 +1130,7 @@ def task_factory(name, func=None, vars=None, color='GREEN', ext_in=[], ext_out=[
 		'scan': scan,
 	}
 
-	if isinstance(func, str):
+	if isinstance(func, str) or isinstance(func, tuple):
 		params['run_str'] = func
 	else:
 		params['run'] = func

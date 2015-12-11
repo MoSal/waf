@@ -341,6 +341,7 @@ def conf(f):
 			if mandatory:
 				raise
 
+	fun.__name__ = f.__name__
 	setattr(ConfigurationContext, f.__name__, fun)
 	setattr(Build.BuildContext, f.__name__, fun)
 	return f
@@ -416,7 +417,7 @@ def find_file(self, filename, path_list=[]):
 	"""
 	for n in Utils.to_list(filename):
 		for d in Utils.to_list(path_list):
-			p = os.path.join(d, n)
+			p = os.path.expanduser(os.path.join(d, n))
 			if os.path.exists(p):
 				return p
 	self.fatal('Could not find %r' % filename)
